@@ -195,6 +195,7 @@ def read_user_by_id(
 def update_user(
     *,
     session: SessionDep,
+    current_user: CurrentUser,
     user_id: uuid.UUID,
     user_in: UserUpdate,
 ) -> Any:
@@ -207,6 +208,15 @@ def update_user(
         raise HTTPException(
             status_code=404,
             detail="The user with this id does not exist in the system",
+        )
+    # Compare values, not presence: edit forms resubmit unchanged role and status
+    if db_user.id == current_user.id and (
+        (user_in.role is not None and user_in.role != db_user.role)
+        or (user_in.is_active is not None and user_in.is_active != db_user.is_active)
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Users cannot change their own role or active status",
         )
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
