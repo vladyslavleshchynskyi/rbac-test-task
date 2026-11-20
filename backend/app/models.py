@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
@@ -7,6 +8,13 @@ from sqlmodel import Field, Relationship, SQLModel
 
 def get_datetime_utc() -> datetime:
     return datetime.now(UTC)
+
+
+# Names equal values because SQLAlchemy persists enum names
+class Role(StrEnum):
+    admin = "admin"
+    manager = "manager"
+    member = "member"
 
 
 # Shared properties
