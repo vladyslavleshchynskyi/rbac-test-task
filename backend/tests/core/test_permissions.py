@@ -1,7 +1,7 @@
 import pytest
 
-from app.core.permissions import ROLE_PERMISSIONS, Permission, permissions_for
-from app.models import Role
+from app.core.permissions import ROLE_PERMISSIONS, permissions_for
+from app.models import Permission, Role
 
 
 @pytest.mark.parametrize(

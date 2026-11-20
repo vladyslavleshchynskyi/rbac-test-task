@@ -6,9 +6,10 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
+from app.core.permissions import permissions_for
 from app.core.security import verify_password
-from app.models import User, UserCreate
-from tests.utils.user import create_random_user
+from app.models import Role, User, UserCreate
+from tests.utils.user import create_random_user, user_with_role_headers
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -19,7 +20,7 @@ def test_get_users_superuser_me(
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"]
+    assert current_user["role"] == "admin"
     assert current_user["email"] == settings.FIRST_SUPERUSER
 
 
@@ -30,8 +31,20 @@ def test_get_users_normal_user_me(
     current_user = r.json()
     assert current_user
     assert current_user["is_active"] is True
-    assert current_user["is_superuser"] is False
+    assert current_user["role"] == "member"
     assert current_user["email"] == settings.EMAIL_TEST_USER
+
+
+def test_get_users_me_returns_role_and_permissions(
+    client: TestClient, db: Session
+) -> None:
+    for role in Role:
+        _, headers = user_with_role_headers(client=client, db=db, role=role)
+        r = client.get(f"{settings.API_V1_STR}/users/me", headers=headers)
+        current_user = r.json()
+        assert current_user["role"] == role
+        assert current_user["permissions"] == permissions_for(role)
+        assert "is_superuser" not in current_user
 
 
 def test_create_user_new_email(
@@ -221,6 +234,23 @@ def test_update_user_me(
     assert user_db.full_name == full_name
 
 
+def test_update_user_me_cannot_set_role_or_status(
+    client: TestClient, db: Session
+) -> None:
+    user, headers = user_with_role_headers(client=client, db=db, role=Role.member)
+    data = {"role": "admin", "is_active": False}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me",
+        headers=headers,
+        json=data,
+    )
+    assert r.status_code == 200
+
+    db.refresh(user)
+    assert user.role == Role.member
+    assert user.is_active is True
+
+
 def test_update_password_me(
     client: TestClient, superuser_token_headers: dict[str, str], db: Session
 ) -> None:
@@ -339,6 +369,21 @@ def test_register_user(client: TestClient, db: Session) -> None:
     assert verified
 
 
+def test_register_user_cannot_set_role(client: TestClient, db: Session) -> None:
+    username = random_email()
+    data = {"email": username, "password": random_lower_string(), "role": "admin"}
+    r = client.post(
+        f"{settings.API_V1_STR}/users/signup",
+        json=data,
+    )
+    assert r.status_code == 200
+    assert r.json()["role"] == "member"
+
+    user_db = db.exec(select(User).where(User.email == username)).first()
+    assert user_db
+    assert user_db.role == Role.member
+
+
 def test_register_user_already_exists_error(client: TestClient) -> None:
     password = random_lower_string()
     full_name = random_lower_string()
@@ -448,7 +493,7 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
     assert user_db is None
 
 
-def test_delete_user_me_as_superuser(
+def test_delete_user_me_as_admin(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
     r = client.delete(
@@ -457,7 +502,7 @@ def test_delete_user_me_as_superuser(
     )
     assert r.status_code == 403
     response = r.json()
-    assert response["detail"] == "Super users are not allowed to delete themselves"
+    assert response["detail"] == "Admins are not allowed to delete themselves"
 
 
 def test_delete_user_super_user(
@@ -502,7 +547,7 @@ def test_delete_user_current_super_user_error(
         headers=superuser_token_headers,
     )
     assert r.status_code == 403
-    assert r.json()["detail"] == "Super users are not allowed to delete themselves"
+    assert r.json()["detail"] == "Admins are not allowed to delete themselves"
 
 
 def test_delete_user_without_privileges(

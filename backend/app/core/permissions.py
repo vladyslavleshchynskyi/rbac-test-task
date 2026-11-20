@@ -1,14 +1,4 @@
-from enum import StrEnum
-
-from app.models import Role
-
-
-class Permission(StrEnum):
-    USERS_READ = "users:read"
-    USERS_MANAGE = "users:manage"
-    METRICS_READ = "metrics:read"
-    ITEMS_MANAGE_ALL = "items:manage_all"
-
+from app.models import Permission, Role, User
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.member: frozenset(),
@@ -19,3 +9,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
 
 def permissions_for(role: Role) -> list[Permission]:
     return sorted(ROLE_PERMISSIONS[role])
+
+
+def has_permission(user: User, permission: Permission) -> bool:
+    return permission in ROLE_PERMISSIONS[user.role]
