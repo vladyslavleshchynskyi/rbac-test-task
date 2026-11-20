@@ -14,11 +14,28 @@ test("My profile tab is active by default", async ({ page }) => {
   )
 })
 
-test("All tabs are visible", async ({ page }) => {
+test("Admin does not see the danger zone tab", async ({ page }) => {
   await page.goto("/settings")
-  for (const tab of tabs) {
+  for (const tab of tabs.slice(0, 2)) {
     await expect(page.getByRole("tab", { name: tab })).toBeVisible()
   }
+  await expect(page.getByRole("tab", { name: "Danger zone" })).not.toBeVisible()
+})
+
+test.describe("Member settings tabs", () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
+  test("All tabs are visible", async ({ page }) => {
+    const email = randomEmail()
+    const password = randomPassword()
+    await createUser({ email, password })
+    await logInUser(page, email, password)
+
+    await page.goto("/settings")
+    for (const tab of tabs) {
+      await expect(page.getByRole("tab", { name: tab })).toBeVisible()
+    }
+  })
 })
 
 test.describe("Edit user profile", () => {
