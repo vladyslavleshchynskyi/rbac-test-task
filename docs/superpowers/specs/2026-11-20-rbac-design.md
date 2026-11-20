@@ -163,16 +163,25 @@ regular user, run upgrade → check roles → downgrade → check `is_superuser`
 
 ### Reviewer setup
 
-Documented in the README section for the task: run the app as usual, log in as
-`FIRST_SUPERUSER` (admin), create a manager and a member from the Admin page. Note
-that `scripts/test.sh` wipes all users in the dev DB; rerun
-`uv run python app/initial_data.py` afterwards. Commands to run app and tests are
-unchanged.
+- New script `backend/app/seed_demo_users.py`, run explicitly
+  (`uv run python app/seed_demo_users.py` from `backend/`, or via
+  `docker compose exec backend python app/seed_demo_users.py`). It is **not** part of
+  `prestart.sh`, so it never runs on deployments.
+- It refuses to run unless `FASTAPI_ENV == "development"`.
+- Idempotent: creates `manager@example.com` (manager) and `member@example.com`
+  (member) only if a user with that email does not exist; existing users are left
+  untouched (no role or password reset). Password is `FIRST_SUPERUSER_PASSWORD`, so
+  no new settings are introduced. It also calls `init_db` so the admin exists too.
+- Root `README.md` gets a short section for the task: the three roles and what each
+  can do, the seed command and demo credentials, and the note that
+  `scripts/test.sh` wipes all users in the dev DB (rerun `initial_data.py` and the
+  seed afterwards). Commands to run the app and tests are unchanged.
 
 ## Left to the builder
 
 - Exact component structure of the role select and metrics page (reuse existing
   shadcn components, no new dependencies).
 - Test helper shape for creating users with a role and getting their token headers.
+- A small test for the seed script's idempotency (run twice → same users).
 - Exact wording of error messages (keep the existing "The user doesn't have enough
   privileges" for 403).
