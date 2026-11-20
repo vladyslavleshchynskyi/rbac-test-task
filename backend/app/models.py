@@ -130,6 +130,13 @@ class ItemsPublic(SQLModel):
     count: int
 
 
+# User counts for the metrics page
+class Metrics(SQLModel):
+    total_users: int
+    active_users: int
+    users_by_role: dict[Role, int]
+
+
 # Generic message
 class Message(SQLModel):
     message: str
