@@ -67,3 +67,21 @@ test.describe("Manager access", () => {
     await expect(page.getByText("Total users")).toBeVisible()
   })
 })
+
+test.describe("Dead session", () => {
+  for (const path of ["/admin", "/metrics"]) {
+    test(`Opening ${path} with a dead session redirects to login`, async ({
+      page,
+    }) => {
+      await logInUser(page, firstSuperuser, firstSuperuserPassword)
+      await page.evaluate(() => localStorage.setItem("access_token", "expired"))
+
+      await page.goto(path)
+
+      await expect(page).toHaveURL("/login")
+      expect(
+        await page.evaluate(() => localStorage.getItem("access_token")),
+      ).toBeNull()
+    })
+  }
+})

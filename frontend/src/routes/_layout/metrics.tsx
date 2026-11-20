@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { Suspense } from "react"
 
-import { MetricsService, UsersService } from "@/client"
+import { MetricsService } from "@/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { hasPermission, roles } from "@/lib/permissions"
+import { requirePermission, roles } from "@/lib/permissions"
 
 function getMetricsQueryOptions() {
   return {
@@ -16,14 +16,7 @@ function getMetricsQueryOptions() {
 
 export const Route = createFileRoute("/_layout/metrics")({
   component: Metrics,
-  beforeLoad: async () => {
-    const { data: user } = await UsersService.readUserMe()
-    if (!hasPermission(user, "metrics:read")) {
-      throw redirect({
-        to: "/",
-      })
-    }
-  },
+  beforeLoad: () => requirePermission("metrics:read"),
   head: () => ({
     meta: [
       {
