@@ -1,6 +1,8 @@
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 
+import sqlalchemy as sa
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -9,11 +11,29 @@ def get_datetime_utc() -> datetime:
     return datetime.now(UTC)
 
 
+# Names equal values because SQLAlchemy persists enum names
+class Role(StrEnum):
+    admin = "admin"
+    manager = "manager"
+    member = "member"
+
+
+class Permission(StrEnum):
+    USERS_READ = "users:read"
+    USERS_MANAGE = "users:manage"
+    METRICS_READ = "metrics:read"
+    ITEMS_MANAGE_ALL = "items:manage_all"
+
+
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
-    is_superuser: bool = False
+    role: Role = Field(
+        default=Role.member,
+        sa_type=sa.Enum(Role, name="userrole"),
+        sa_column_kwargs={"server_default": Role.member.value},
+    )
     full_name: str | None = Field(default=None, max_length=255)
 
 
@@ -32,7 +52,7 @@ class UserRegister(SQLModel):
 class UserUpdate(SQLModel):
     email: EmailStr | None = Field(default=None, max_length=255)
     is_active: bool | None = None
-    is_superuser: bool | None = None
+    role: Role | None = None
     full_name: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8, max_length=128)
 
@@ -59,6 +79,11 @@ class User(UserBase, table=True):
 class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
+
+
+# Current user with the permissions granted by their role
+class UserMe(UserPublic):
+    permissions: list[Permission]
 
 
 class UsersPublic(SQLModel):
@@ -103,6 +128,13 @@ class ItemPublic(ItemBase):
 class ItemsPublic(SQLModel):
     data: list[ItemPublic]
     count: int
+
+
+# User counts for the metrics page
+class Metrics(SQLModel):
+    total_users: int
+    active_users: int
+    users_by_role: dict[Role, int]
 
 
 # Generic message

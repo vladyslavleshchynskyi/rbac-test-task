@@ -28,7 +28,15 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import useCustomToast from "@/hooks/useCustomToast"
+import { roles } from "@/lib/permissions"
 import { handleError } from "@/utils"
 
 const formSchema = z
@@ -42,7 +50,7 @@ const formSchema = z
     confirm_password: z
       .string()
       .min(1, { message: "Please confirm your password" }),
-    is_superuser: z.boolean(),
+    role: z.enum(["admin", "manager", "member"]),
     is_active: z.boolean(),
   })
   .refine((data) => data.password === data.confirm_password, {
@@ -66,7 +74,7 @@ const AddUser = () => {
       full_name: "",
       password: "",
       confirm_password: "",
-      is_superuser: false,
+      role: "member",
       is_active: false,
     },
   })
@@ -186,16 +194,25 @@ const AddUser = () => {
 
               <FormField
                 control={form.control}
-                name="is_superuser"
+                name="role"
                 render={({ field }) => (
-                  <FormItem className="flex items-center gap-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">Is superuser?</FormLabel>
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger aria-label="Role">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

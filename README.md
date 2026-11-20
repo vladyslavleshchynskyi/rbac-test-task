@@ -3,6 +3,31 @@
 [![Test Docker Compose](../../actions/workflows/test-docker-compose.yml/badge.svg)](../../actions/workflows/test-docker-compose.yml)
 [![Test Backend](../../actions/workflows/test-backend.yml/badge.svg)](../../actions/workflows/test-backend.yml)
 
+## Roles and access
+
+Every user has one role. Authorization is enforced by the backend and the role is read on every request, so role and active status changes apply to existing sessions immediately.
+
+| Role | Can do |
+|---|---|
+| Admin | Manage users, their roles and active status, view metrics, manage all items |
+| Manager | View users and metrics; cannot create, edit or delete users |
+| Member | View and update own profile, manage own items |
+
+Nobody can change their own role or deactivate themselves. Existing superusers are migrated to admins, all other users to members.
+
+To try all three roles locally, seed the demo users (development only, safe to run repeatedly):
+
+```bash
+cd backend
+uv run python app/seed_demo_users.py
+# or, with Docker Compose
+docker compose exec backend python app/seed_demo_users.py
+```
+
+Log in as `admin@example.com`, `manager@example.com` or `member@example.com` with the `FIRST_SUPERUSER_PASSWORD` from `.env`.
+
+`scripts/test.sh` deletes all users from the database it runs against, so run the seed again after the tests.
+
 ## Technology Stack and Features
 
 - ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python backend API.
