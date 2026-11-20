@@ -23,7 +23,6 @@ role_enum = sa.Enum('admin', 'manager', 'member', name='userrole')
 def upgrade():
     role_enum.create(op.get_bind())
     op.add_column('user', sa.Column('role', role_enum, nullable=True, server_default='member'))
-    # Superusers become admins, everyone else keeps regular access as members
     op.execute("""UPDATE "user" SET role = 'admin' WHERE is_superuser""")
     op.execute("""UPDATE "user" SET role = 'member' WHERE role IS NULL""")
     op.alter_column('user', 'role', nullable=False)

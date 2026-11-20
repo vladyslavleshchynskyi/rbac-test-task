@@ -19,7 +19,6 @@ DEMO_USERS = [
 def seed_demo_users(session: Session) -> None:
     init_db(session)
     for email, role in DEMO_USERS:
-        # Create only missing users, never reset existing roles or passwords
         if crud.get_user_by_email(session=session, email=email):
             continue
         user_in = UserCreate(
